@@ -1,0 +1,27 @@
+{
+  "name": "secret_wechat_msg",
+  "version": "1.0.0",
+  "description": "微信聊天加密脚本",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src/index.js -o dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/batu1579/secret_wechat_msg.git"
+  },
+  "keywords": [
+    "Wechat"
+  ],
+  "author": "BATU1579",
+  "license": "MPL-2.0",
+  "bugs": {
+    "url": "https://github.com/batu1579/secret_wechat_msg/issues"
+  },
+  "homepage": "https://github.com/batu1579/secret_wechat_msg#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1"
+  }
+}

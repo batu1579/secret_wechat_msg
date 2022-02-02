@@ -1,0 +1,2 @@
+# secret_wechat_msg
+基于hamibot的微信消息加密脚本
