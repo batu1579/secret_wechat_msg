@@ -2,7 +2,7 @@
  * @Author: BATU1579
  * @Date: 2022-01-31 22:52:46
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-03 03:11:29
+ * @LastTime: 2022-02-03 04:16:17
  * @Description: 微信加密聊天脚本
  */
 
@@ -260,7 +260,9 @@ class Wechat {
         } catch (err) {
             if (! (() => {
                 launch("com.hamibot.hamibot");
+                sleep(SHORT_WAIT_MS);
                 let results = requestScreenCapture();
+                sleep(SHORT_WAIT_MS);
                 launch("com.tencent.mm");
                 return results;
             })()) {
@@ -274,9 +276,9 @@ class Wechat {
             }
         }
         img = images.clip(img, 0, 80, device.width, 200);
-        let results = ocr.recognize(img).results[0].text;
+        let result = ocr.recognize(img).results[0].text;
         img.recycle();
-        return results;
+        return result;
     }
 
     /**
@@ -285,7 +287,8 @@ class Wechat {
      */
     getChatUsernameByOCR() {
         let title = this.getChatPageTitleByOCR();
-        return /^(.+)[\(|（](\d*)[\)|）]$/.exec(title)[1];
+        let result = /^(.+)[\(|（](\d*)[\)|）]$/.exec(title);
+        return result !== null ? result[1] : title;
     }
 
     /**
@@ -294,7 +297,8 @@ class Wechat {
      */
     getChatNumberByOCR() {
         let title = this.getChatPageTitleByOCR();
-        return Number(/^(.+)[\(|（](\d*)[\)|）]$/.exec(title)[2]);
+        let result =  /^(.+)[\(|（](\d*)[\)|）]$/.exec(title);
+        return result !== null ? Number(result[2]) : 1;
     }
 
     /**
