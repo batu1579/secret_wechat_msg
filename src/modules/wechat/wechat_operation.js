@@ -2,7 +2,7 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 15:50:18
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-05 05:07:25
+ * @LastTime: 2022-02-05 05:13:35
  * @FilePath: \\src\\modules\\wechat\\wechat_operation.js
  * @Description: 微信操作接口
  */
@@ -355,7 +355,7 @@ export class Wechat {
             .contentDescription;
         let reg_pattern = new RegExp("^(.+)" + this.mark.desc_avatar_suffix + "$")
         let result = reg_pattern.exec(avatar_desc);
-        this.logger.verbose("message sender's username: " + result);
+        this.logger.verbose("message sender's username: " + result[1]);
         return result[1];
     }
 
