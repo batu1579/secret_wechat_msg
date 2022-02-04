@@ -2,7 +2,7 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 15:50:18
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-04 22:00:58
+ * @LastTime: 2022-02-05 05:07:25
  * @FilePath: \\src\\modules\\wechat\\wechat_operation.js
  * @Description: 微信操作接口
  */
@@ -10,6 +10,10 @@ import {
     TIME_OUT_MS,
     SHORT_WAIT_MS
 } from '../../global';
+
+import {
+    Logger
+} from '../logger/logger'
 
 import {
     LanguageNotSupported,
@@ -25,6 +29,9 @@ import {
 
 export class Wechat {
     constructor(language_code) {
+
+        this.logger = new Logger("Wechat");
+
         switch (language_code) {
             case "CN":
                 this.mark = {
@@ -32,7 +39,8 @@ export class Wechat {
                     desc_chat_info_button: "聊天信息",
                     reg_chat_info_page_title: "^[^聊天信息]+$",
                     text_send_message_button: "发送",
-                    desc_search_button: "搜索"
+                    desc_search_button: "搜索",
+                    desc_avatar_suffix: "头像"
                 }
                 break;
             default:
@@ -112,6 +120,7 @@ export class Wechat {
      */
     returnToHomePage() {
         this.checkIsOnChatPage();
+        this.logger.verbose("return to home page");
         return className("LinearLayout")
             .clickable()
             .find()[1]
@@ -134,6 +143,7 @@ export class Wechat {
         sleep(SHORT_WAIT_MS);
         setText(0, username);
         sleep(SHORT_WAIT_MS);
+        this.logger.verbose("open chat page with " + username);
         return className("ListView")
             .findOne(TIME_OUT_MS)
             .child(2)
@@ -164,6 +174,7 @@ export class Wechat {
      * @description: turn to chat list page
      */
     openChatListPage() {
+        this.logger.verbose("open chat list page");
         return this.pressNavigationButton(40);
     }
 
@@ -172,6 +183,7 @@ export class Wechat {
      * @description: turn to address list page
      */
     openAddressListPage() {
+        this.logger.verbose("open address list page");
         return this.pressNavigationButton((device.width / 2) - 40);
     }
 
@@ -180,6 +192,7 @@ export class Wechat {
      * @description: turn to discover page
      */
     openDiscoverPage() {
+        this.logger.verbose("open discover page");
         return this.pressNavigationButton((device.width / 2) + 40);
     }
 
@@ -188,6 +201,7 @@ export class Wechat {
      * @description: turn to personal information page
      */
     openPersonalInformationPage() {
+        this.logger.verbose("open personal information page");
         return this.pressNavigationButton(device.width - 40);
     }
 
@@ -201,11 +215,15 @@ export class Wechat {
         try {
             img = captureScreen();
         } catch (err) {
+            this.logger.warn("no screenshot permission");
             if (!(() => {
                 launch("com.hamibot.hamibot");
                 sleep(SHORT_WAIT_MS);
+
+                this.logger.verbose("try to obtain screenshot permission");
                 let results = requestScreenCapture();
                 sleep(SHORT_WAIT_MS);
+
                 launch("com.tencent.mm");
                 return results;
             })()) {
@@ -218,8 +236,10 @@ export class Wechat {
                 img = captureScreen();
             }
         }
+        this.logger.verbose("image captured successfully");
         img = images.clip(img, 0, 80, device.width, 200);
         let result = ocr.recognize(img).results[0].text;
+        this.logger.verbose("OCR result: " + result);
         img.recycle();
         return result;
     }
@@ -258,6 +278,7 @@ export class Wechat {
             .textMatches(this.mark.reg_chat_info_page_title)
             .findOne(TIME_OUT_MS)
             .text();
+        this.verbose("get chat username: " + username);
         sleep(SHORT_WAIT_MS);
         className("Button")
             .findOne(TIME_OUT_MS)
@@ -270,6 +291,7 @@ export class Wechat {
      * @description: get self username by personal information page
      */
     getSelfUsernameByhomePage() {
+        // TODO: Return to the original page
         this.checkIsOnHomePage();
         this.openPersonalInformationPage();
         sleep(SHORT_WAIT_MS);
@@ -280,6 +302,7 @@ export class Wechat {
             .find()
             .slice(-1)[0]
             .text();
+        this.logger.verbose("self username: " + username);
         sleep(SHORT_WAIT_MS);
         this.openChatListPage();
         return username;
@@ -312,6 +335,7 @@ export class Wechat {
      */
     getMessageList() {
         this.checkIsOnChatPage();
+        this.logger.verbose("get message list");
         return className("ListView")
             .findOne(TIME_OUT_MS)
             .children()
@@ -331,6 +355,7 @@ export class Wechat {
             .contentDescription;
         let reg_pattern = new RegExp("^(.+)" + this.mark.desc_avatar_suffix + "$")
         let result = reg_pattern.exec(avatar_desc);
+        this.logger.verbose("message sender's username: " + result);
         return result[1];
     }
 
@@ -340,14 +365,16 @@ export class Wechat {
      * @description: get message text by message selector object
      */
     getMessageUsernameByUIObject(message_object) {
-        return message_object.children()
+        let text = message_object.children()
             .slice(-1)[0]
             .find(
                 className("TextView")
             )
             .slice(-1)[0]
             .text();
-    }    
+        this.logger.verbose("message text: " + text);
+        return text;
+    }
 
     /**
      * @return {string} raw message
@@ -378,7 +405,7 @@ export class Wechat {
             .findOne(TIME_OUT_MS)
             .text();
     }
-
+    
     /**
      * @param {string} message text to send
      * @return {boolean} true if replace text successfully
@@ -386,6 +413,7 @@ export class Wechat {
      */
     replaceUserInput(message) {
         this.checkIsOnChatPage();
+        this.logger.verbose("replace input box with: " + message);
         return setText(0, message);
     }
 
@@ -396,6 +424,7 @@ export class Wechat {
      */
     appendUserInput(message) {
         this.checkIsOnChatPage();
+        this.logger.verbose("append input box with: " + message);
         return input(0, message);
     }
 
@@ -405,6 +434,7 @@ export class Wechat {
      */
     sendMessage() {
         this.checkIsOnChatPage();
+        this.logger.verbose("send message");
         return className("Button")
             .text(this.mark.text_send_message_button)
             .findOne(TIME_OUT_MS)
