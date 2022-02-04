@@ -307,15 +307,64 @@ export class Wechat {
     }
 
     /**
+     * @return {UiCollection} collection of each message object
+     * @description: gets the list of currently visible chats
+     */
+    getMessageList() {
+        this.checkIsOnChatPage();
+        return className("ListView")
+            .findOne(TIME_OUT_MS)
+            .children()
+    }
+
+    /**
+     * @param {UiOobject} message_object selector object for a single message
+     * @return {string} sender's username
+     * @description: get sender's username by message selector object
+     */
+     getMessageByUIObject(message_object) {
+        let avatar_desc = message_object.children()
+            .slice(-1)[0]
+            .findOne(
+                className("ImageView")
+            )
+            .contentDescription;
+        let reg_pattern = new RegExp("^(.+)" + this.mark.desc_avatar_suffix + "$")
+        let result = reg_pattern.exec(avatar_desc);
+        return result[1];
+    }
+
+    /**
+     * @param {UiOobject} message_object selector object for a single message
+     * @return {string} message text
+     * @description: get message text by message selector object
+     */
+    getMessageUsernameByUIObject(message_object) {
+        return message_object.children()
+            .slice(-1)[0]
+            .find(
+                className("TextView")
+            )
+            .slice(-1)[0]
+            .text();
+    }    
+
+    /**
      * @return {string} raw message
      * @description: get latest raw message form other side of chat
      */
-    getRawMessage() {
-        this.checkIsOnChatPage();
-        return className("TextView")
-            .find()
-            .slice(-1)[0]
-            .text();
+     getRecentMessage() {
+        let messages = this.getMessageList();
+        return this.getMessageByUIObject(messages.slice(-1)[0])
+    }
+
+    /**
+     * @return {string} Sender username
+     * @description: gets the sender username of the most recent message
+     */
+    getUsernameOfRecentMessage() {
+        let messages = this.getMessageList();
+        return this.getMessageUsernameByUIObject(messages.slice(-1)[0])
     }
 
     /**
@@ -331,12 +380,23 @@ export class Wechat {
     }
 
     /**
+     * @param {string} message text to send
      * @return {boolean} true if replace text successfully
      * @description: replace text in input box
      */
-    replaceUserInput(encoded_message) {
+    replaceUserInput(message) {
         this.checkIsOnChatPage();
-        return setText(0, encoded_message);
+        return setText(0, message);
+    }
+
+    /**
+     * @param {string} message text to append
+     * @return {boolean} true if append text successfully
+     * @description: append text in input box
+     */
+    appendUserInput(message) {
+        this.checkIsOnChatPage();
+        return input(0, message);
     }
 
     /**
