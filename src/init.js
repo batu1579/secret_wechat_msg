@@ -2,15 +2,19 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 20:58:39
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-04 22:00:02
+ * @LastTime: 2022-02-05 15:22:47
  * @FilePath: \\src\\init.js
  * @Description: 脚本初始化
  */
 import { SHORT_WAIT_MS } from "./global";
 
+import { Logger } from "./modules/logger/logger";
+
 const { SHOW_CONSOLE } = hamibot.env;
 
 export function init() {
+    logger = new Logger("init");
+
     console.info('Launching...');
     events.on("exit", () => { console.info("Exit..."); });
 
@@ -18,6 +22,8 @@ export function init() {
     if (auto.service === null) {
         alert('Please enable accessibility permissions and restart Hamibot');
         auto();
+    } else {
+        logger.verbose("Access permissions enabled");
     }
 
     // check is service alive
@@ -28,7 +34,7 @@ export function init() {
         );
         exit();
     } else {
-        console.log('screen size : ' + device.width + ' x ' + device.height);
+        logger.verbose("Screen size: " + device.height + "x" + device.width);
     }
 
     // show console
