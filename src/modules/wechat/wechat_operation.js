@@ -96,7 +96,7 @@ export class Wechat {
         if (this.isInWechat()) {
             return boundsContains(10, device.height - 10, device.width - 10, device.height)
                 .className("LinearLayout")
-                .filter(function (i) {
+                .filter((i) => {
                     return i.childCount() == 4;
                 })
                 .exists();
@@ -143,7 +143,7 @@ export class Wechat {
         sleep(SHORT_WAIT_MS);
         setText(0, username);
         sleep(SHORT_WAIT_MS);
-        this.logger.verbose("open chat page with " + username);
+        this.logger.verbose(`open chat page with ${username}`);
         return className("ListView")
             .findOne(TIME_OUT_MS)
             .child(2)
@@ -239,7 +239,7 @@ export class Wechat {
         this.logger.verbose("image captured successfully");
         img = images.clip(img, 0, 80, device.width, 200);
         let result = ocr.recognize(img).results[0].text;
-        this.logger.verbose("OCR result: " + result);
+        this.logger.verbose(`OCR result: ${result}`);
         img.recycle();
         return result;
     }
@@ -269,6 +269,7 @@ export class Wechat {
      * @description: get username of whom you are talking to
      */
     getChatUsernameByChatInfoPage() {
+        // TODO: Change this function to get a list of chat members instead
         this.checkIsOnChatPage();
         desc(this.mark.desc_chat_info_button)
             .findOne(TIME_OUT_MS)
@@ -278,7 +279,7 @@ export class Wechat {
             .textMatches(this.mark.reg_chat_info_page_title)
             .findOne(TIME_OUT_MS)
             .text();
-        this.verbose("get chat username: " + username);
+        this.verbose(`Get chat username: ${username}`);
         sleep(SHORT_WAIT_MS);
         className("Button")
             .findOne(TIME_OUT_MS)
@@ -296,13 +297,13 @@ export class Wechat {
         this.openPersonalInformationPage();
         sleep(SHORT_WAIT_MS);
         let username = className("android.view.View")
-            .filter(function (i) {
+            .filter((i) => {
                 return i.text() != "";
             })
             .find()
             .slice(-1)[0]
             .text();
-        this.logger.verbose("self username: " + username);
+        this.logger.verbose(`Self username: ${username}`);
         sleep(SHORT_WAIT_MS);
         this.openChatListPage();
         return username;
@@ -331,7 +332,7 @@ export class Wechat {
 
     /**
      * @return {UiCollection} collection of each message object
-     * @description: gets the list of currently visible chats
+     * @description: get the list of currently visible chats
      */
     getMessageList() {
         this.checkIsOnChatPage();
@@ -353,9 +354,9 @@ export class Wechat {
                 className("ImageView")
             )
             .contentDescription;
-        let reg_pattern = new RegExp("^(.+)" + this.mark.desc_avatar_suffix + "$")
+        let reg_pattern = new RegExp(`^(.+)${this.mark.desc_avatar_suffix}$`)
         let result = reg_pattern.exec(avatar_desc);
-        this.logger.verbose("message sender's username: " + result[1]);
+        this.logger.verbose(`Message sender's username: ${result}`);
         return result[1];
     }
 
@@ -372,7 +373,7 @@ export class Wechat {
             )
             .slice(-1)[0]
             .text();
-        this.logger.verbose("message text: " + text);
+        this.logger.verbose(`Message text: ${text}`);
         return text;
     }
 
@@ -413,7 +414,7 @@ export class Wechat {
      */
     replaceUserInput(message) {
         this.checkIsOnChatPage();
-        this.logger.verbose("replace input box with: " + message);
+        this.logger.verbose('replace input box with: ${message}');
         return setText(0, message);
     }
 
@@ -424,7 +425,7 @@ export class Wechat {
      */
     appendUserInput(message) {
         this.checkIsOnChatPage();
-        this.logger.verbose("append input box with: " + message);
+        this.logger.verbose(`append input box with: ${message}`);
         return input(0, message);
     }
 
