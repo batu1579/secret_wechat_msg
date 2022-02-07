@@ -2,7 +2,7 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 15:50:18
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-08 06:12:29
+ * @LastTime: 2022-02-08 06:49:59
  * @FilePath: \\src\\modules\\wechat\\wechat_operation.js
  * @Description: 微信操作接口
  */
@@ -12,12 +12,11 @@ import {
     EX_SHORT_WAIT_MS
 } from '../../global';
 
-import {
-    Logger
-} from '../logger/logger'
+import { Logger } from '../logger/logger';
+
+import { getMark } from './mark';
 
 import {
-    LanguageNotSupported,
     NotInWechatApp,
     NotOnChatPage,
     NotOnHomePage,
@@ -34,22 +33,33 @@ export class Wechat {
 
         this.logger = new Logger("Wechat");
 
+        this.wechat_events = events.emitter();
+
+        let current_pkg = "";
+        let last_pkg = "";
+        setInterval(function () {
+            current_pkg = selector().findOne().packageName();
+            if (current_pkg != last_pkg) {
+                if (current_pkg != "com.tencent.mm" && last_pkg == "com.tencent.mm") {
+                    this.wechat_events.emit("quit_wechat");
+                } else if (current_pkg == "com.tencent.mm") {
+                    this.wechat_events.emit("back_to_wechat");
+                }
+            }
+            last_pkg = current_pkg;
+        }, EX_SHORT_WAIT_MS)
+
+        this.wechat_events.on("quit_wechat", function () {
+            this.is_in_wechat = false;
+        })
+
+        this.wechat_events.on("back_to_wechat", function () {
+            this.is_in_wechat = true;
+        })
+
         this.getSelfUsername(false);
 
-        switch (language_code) {
-            case "CN":
-                this.mark = {
-                    desc_to_voice_button: "切换到按住说话",
-                    desc_chat_info_button: "聊天信息",
-                    reg_chat_info_page_title: "^[^聊天信息]+$",
-                    text_send_message_button: "发送",
-                    desc_search_button: "搜索",
-                    desc_avatar_suffix: "头像"
-                }
-                break;
-            default:
-                throw new LanguageNotSupported(language_code);
-        }
+        this.mark = getMark(language_code);
     }
 
     /**
@@ -57,7 +67,7 @@ export class Wechat {
      * @description: check whether wechat is displayed
      */
     isInWechat() {
-        return currentPackage() === "com.tencent.mm";
+        return this.is_in_wechat;
     }
 
     /**
