@@ -305,19 +305,19 @@ export class Wechat {
      */
     getSelfUsername(strict_mode = ture) {
         try{
-        this.checkIsInWechat();
+            this.checkIsInWechat();
             if (this.self_username == "") {
-        if (this.isOnChatPage()) {
+                if (this.isOnChatPage()) {
                     let chat_name = this.getChatPageTitleByOCR().chat_name;
-            sleep(SHORT_WAIT_MS);
-            this.returnToHomePage();
-            sleep(SHORT_WAIT_MS);
+                    sleep(SHORT_WAIT_MS);
+                    this.returnToHomePage();
+                    sleep(SHORT_WAIT_MS);
                     this.self_username = this.getSelfUsernameByhomePage();
-            sleep(SHORT_WAIT_MS);
+                    sleep(SHORT_WAIT_MS);
                     this.openChatPageBySearch(chat_name);
-        } else {
+                } else {
                     this.self_username = this.getSelfUsernameByhomePage();
-        }
+                }
             }
             return this.self_username;
         } catch (e) {
@@ -347,7 +347,7 @@ export class Wechat {
      * @return {string} sender's username
      * @description: get sender's username by message selector object
      */
-     getMessageByUIObject(message_object) {
+    getMessageByUIObject(message_object) {
         let avatar_desc = message_object.children()
             .slice(-1)[0]
             .findOne(
@@ -381,7 +381,7 @@ export class Wechat {
      * @return {string} raw message
      * @description: get latest raw message form other side of chat
      */
-     getRecentMessage() {
+    getRecentMessage() {
         let messages = this.getMessageList();
         return this.getMessageByUIObject(messages.slice(-1)[0])
     }
@@ -406,7 +406,7 @@ export class Wechat {
             .findOne(TIME_OUT_MS)
             .text();
     }
-    
+
     /**
      * @param {string} message text to send
      * @return {boolean} true if replace text successfully
