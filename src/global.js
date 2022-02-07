@@ -2,8 +2,8 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 21:03:08
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-04 21:25:10
- * @FilePath: \\src\\const.js
+ * @LastTime: 2022-02-06 05:09:18
+ * @FilePath: \\src\\global.js
  * @Description: 全局常量
  */
 export const VERSION = "0.1.0";
