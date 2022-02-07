@@ -2,7 +2,7 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 20:58:39
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-05 15:22:47
+ * @LastTime: 2022-02-08 06:19:13
  * @FilePath: \\src\\init.js
  * @Description: 脚本初始化
  */
@@ -10,7 +10,13 @@ import { SHORT_WAIT_MS } from "./global";
 
 import { Logger } from "./modules/logger/logger";
 
+import { Wechat } from "./modules/wechat/wechat_operation";
+
 const { SHOW_CONSOLE } = hamibot.env;
+
+const { WECHAT_LANGUAGE } = hamibot.env;
+
+export const wechat = new Wechat(WECHAT_LANGUAGE != null ? WECHAT_LANGUAGE : "CN");
 
 export function init() {
     logger = new Logger("init");
@@ -38,7 +44,7 @@ export function init() {
     }
 
     // show console
-    if (SHOW_CONSOLE) {
+    if (SHOW_CONSOLE != null ? SHOW_CONSOLE : false) {
         console.show();
         sleep(SHORT_WAIT_MS);
         console.setPosition(0, 100);
