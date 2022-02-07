@@ -2,13 +2,14 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 15:50:18
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-07 23:14:02
+ * @LastTime: 2022-02-08 06:12:29
  * @FilePath: \\src\\modules\\wechat\\wechat_operation.js
  * @Description: 微信操作接口
  */
 import {
     TIME_OUT_MS,
-    SHORT_WAIT_MS
+    SHORT_WAIT_MS,
+    EX_SHORT_WAIT_MS
 } from '../../global';
 
 import {
@@ -26,7 +27,7 @@ import {
 import {
     PermissionObtainingFailure,
     WidgetNotFound
-} from '../global_exception';
+} from '../../global_exception';
 
 export class Wechat {
     constructor(language_code) {
@@ -99,7 +100,7 @@ export class Wechat {
         if (this.isInWechat()) {
             return boundsContains(10, device.height - 10, device.width - 10, device.height)
                 .className("LinearLayout")
-                .filter((i) => {
+                .filter(function (i) {
                     return i.childCount() == 4;
                 })
                 .exists();
@@ -219,7 +220,7 @@ export class Wechat {
             img = captureScreen();
         } catch (err) {
             this.logger.warn("no screenshot permission");
-            if (!(() => {
+            if (!(function () {
                 launch("com.hamibot.hamibot");
                 sleep(SHORT_WAIT_MS);
 
@@ -286,7 +287,7 @@ export class Wechat {
         this.openPersonalInformationPage();
         sleep(SHORT_WAIT_MS);
         let username = className("android.view.View")
-            .filter((i) => {
+            .filter(function (i) {
                 return i.text() != "";
             })
             .find()
@@ -304,7 +305,7 @@ export class Wechat {
      * @description: get self username to attach when sending messages
      */
     getSelfUsername(strict_mode = ture) {
-        try{
+        try {
             this.checkIsInWechat();
             if (this.self_username == "") {
                 if (this.isOnChatPage()) {
@@ -343,56 +344,60 @@ export class Wechat {
     }
 
     /**
-     * @param {UiOobject} message_object selector object for a single message
-     * @return {string} sender's username
-     * @description: get sender's username by message selector object
+     * @return {UiCollection} collection of others messages object
+     * @description: get the list of currently visible chats with out self messages
      */
-    getMessageByUIObject(message_object) {
-        let avatar_desc = message_object.children()
-            .slice(-1)[0]
-            .findOne(
-                className("ImageView")
-            )
-            .contentDescription;
-        let reg_pattern = new RegExp(`^(.+)${this.mark.desc_avatar_suffix}$`)
-        let result = reg_pattern.exec(avatar_desc);
-        this.logger.verbose(`Message sender's username: ${result}`);
-        return result[1];
+    getOtherMessageList() {
+        this.checkIsOnChatPage();
+        this.getSelfUsername();
+        this.logger.verbose("get other message list");
+
+        return className("RelativeLayout").filter(function (i) {
+            let result = i.findOne(
+                className("ImageView").filter(function (i) {
+                    let reg_pattern = new RegExp(`^(.+)${this.mark.desc_avatar_suffix}$`);
+                    let result = reg_pattern.exec(i.contentDescription);
+                    return result != null && result[1] != this.self_username;
+                })
+            );
+            return result != null && i.parent().className().includes("ListView");
+        }).find();
     }
 
     /**
      * @param {UiOobject} message_object selector object for a single message
-     * @return {string} message text
-     * @description: get message text by message selector object
+     * @return {Array} message information {username: string, message: string}
+     * @description: get the sender's username and message text by message selector object
      */
-    getMessageUsernameByUIObject(message_object) {
-        let text = message_object.children()
+    getMessageInfoByUIObject(message_object) {
+        let selector = message_object.children().slice(-1)[0];
+
+        // get message sender
+        let reg_pattern = new RegExp(`^(.+)${this.mark.desc_avatar_suffix}$`);
+        let sender = reg_pattern.exec(
+            selector.findOne(className("ImageView")).contentDescription
+        );
+
+        // get message text
+        let text = selector.find(className("TextView"))
             .slice(-1)[0]
-            .find(
-                className("TextView")
-            )
-            .slice(-1)[0]
-            .text();
-        this.logger.verbose(`Message text: ${text}`);
-        return text;
+            .text;
+
+        let result = {
+            username: sender,
+            message: text
+        };
+        logger.verbose(`Message info: ${result}`);
+        return result;
     }
 
     /**
-     * @return {string} raw message
+     * @return {Array} message information {username: string, message: string}
      * @description: get latest raw message form other side of chat
      */
     getRecentMessage() {
         let messages = this.getMessageList();
-        return this.getMessageByUIObject(messages.slice(-1)[0])
-    }
-
-    /**
-     * @return {string} Sender username
-     * @description: gets the sender username of the most recent message
-     */
-    getUsernameOfRecentMessage() {
-        let messages = this.getMessageList();
-        return this.getMessageUsernameByUIObject(messages.slice(-1)[0])
+        return this.getMessageInfoByUIObject(messages.slice(-1)[0])
     }
 
     /**
