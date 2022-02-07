@@ -2,7 +2,7 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 15:50:18
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-05 05:13:35
+ * @LastTime: 2022-02-07 23:14:02
  * @FilePath: \\src\\modules\\wechat\\wechat_operation.js
  * @Description: 微信操作接口
  */
@@ -19,7 +19,8 @@ import {
     LanguageNotSupported,
     NotInWechatApp,
     NotOnChatPage,
-    NotOnHomePage
+    NotOnHomePage,
+    CannotGetSelfUsername
 } from './wechat_operation_exeption';
 
 import {
@@ -31,6 +32,8 @@ export class Wechat {
     constructor(language_code) {
 
         this.logger = new Logger("Wechat");
+
+        this.getSelfUsername(false);
 
         switch (language_code) {
             case "CN":
@@ -206,8 +209,8 @@ export class Wechat {
     }
 
     /**
-     * @return {string} original chat page title
-     * @description: get chat page title by ocr
+     * @return {Array} matched data {chat_name: "xx", chat_number: xx}
+     * @description: get chat page title and number of chat users by ocr
      */
     getChatPageTitleByOCR() {
         this.checkIsOnChatPage();
@@ -241,27 +244,13 @@ export class Wechat {
         let result = ocr.recognize(img).results[0].text;
         this.logger.verbose(`OCR result: ${result}`);
         img.recycle();
-        return result;
-    }
 
-    /**
-     * @return {string} chat name
-     * @description: get chat name by ocr
-     */
-    getChatUsernameByOCR() {
-        let title = this.getChatPageTitleByOCR();
-        let result = /^(.+)[\(|（](\d*)[\)|）]$/.exec(title);
-        return result !== null ? result[1] : title;
-    }
+        match = /^(.+)[\(|（](\d*)[\)|）]$/.exec(result);
 
-    /**
-     * @return {Number} chat number
-     * @description: get chat number by ocr
-     */
-    getChatNumberByOCR() {
-        let title = this.getChatPageTitleByOCR();
-        let result = /^(.+)[\(|（](\d*)[\)|）]$/.exec(title);
-        return result !== null ? Number(result[2]) : 1;
+        return {
+            chat_name: match !== null ? match[1] : result,
+            chat_user_number: match !== null ? Number(match[2]) : 1
+        };
     }
 
     /**
@@ -310,24 +299,35 @@ export class Wechat {
     }
 
     /**
+     * @param {boolean} strict_mode whether throws exception on failure to get self username, default is true
      * @return {string} self username
      * @description: get self username to attach when sending messages
      */
-    getSelfUsername() {
+    getSelfUsername(strict_mode = ture) {
+        try{
         this.checkIsInWechat();
-        let self_username = "";
+            if (this.self_username == "") {
         if (this.isOnChatPage()) {
-            let username = this.getChatUsernameByOCR();
+                    let chat_name = this.getChatPageTitleByOCR().chat_name;
             sleep(SHORT_WAIT_MS);
             this.returnToHomePage();
             sleep(SHORT_WAIT_MS);
-            self_username = this.getSelfUsernameByhomePage();
+                    this.self_username = this.getSelfUsernameByhomePage();
             sleep(SHORT_WAIT_MS);
-            this.openChatPageBySearch(username);
+                    this.openChatPageBySearch(chat_name);
         } else {
-            self_username = this.getSelfUsernameByhomePage();
+                    this.self_username = this.getSelfUsernameByhomePage();
         }
-        return self_username;
+            }
+            return this.self_username;
+        } catch (e) {
+            if (strict_mode) {
+                throw new CannotGetSelfUsername();
+            } else {
+                this.logger.warn("Failed to get self username");
+                return "";
+            }
+        }
     }
 
     /**

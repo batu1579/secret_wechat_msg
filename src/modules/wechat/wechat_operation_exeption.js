@@ -2,7 +2,7 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 15:52:32
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-04 16:08:52
+ * @LastTime: 2022-02-07 22:49:06
  * @FilePath: \\src\\modules\\wechat\\wechat_operation_exeption.js
  * @Description: 微信操作的异常类
  */
@@ -38,5 +38,12 @@ export class NotOnHomePage extends BaseWechatOprationException {
     constructor() {
         super("Wechat is not on the home page");
         this.name = "NotOnHomePage";
+    }
+}
+
+export class CannotGetSelfUsername extends BaseWechatOprationException {
+    constructor() {
+        super("Failed to get self username");
+        this.name = "CannotGetSelfUsername";
     }
 }
