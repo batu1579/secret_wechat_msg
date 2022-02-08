@@ -2,12 +2,12 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 15:50:18
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-08 06:49:59
+ * @LastTime: 2022-02-09 03:33:49
  * @FilePath: \\src\\modules\\wechat\\wechat_operation.js
  * @Description: 微信操作接口
  */
 import {
-    TIME_OUT_MS,
+    TIMEOUT_MS,
     SHORT_WAIT_MS,
     EX_SHORT_WAIT_MS
 } from '../../global';
@@ -35,31 +35,78 @@ export class Wechat {
 
         this.wechat_events = events.emitter();
 
+        this.add_wechat_detector();
+
+        this.register_listener("quit_wechat", () => {
+            this.logger.info("quit wechat");
+            this.is_in_wechat = false;
+            clearInterval(this.page_detector);
+            this.is_on_chat_page = false;
+        })
+
+        this.register_listener("back_to_wechat", () => {
+            this.logger.info("back to wechat");
+            this.is_in_wechat = true;
+            this.getSelfUsername(false);
+            this.add_page_detector();
+        })
+
+        this.register_listener("enter_chat_page", () => {
+            this.is_on_chat_page = true;
+            this.logger.info("enter chat page");
+        })
+
+        this.register_listener("leave_chat_page", () => {
+            this.is_on_chat_page = false;
+            this.logger.info("leave chat page");
+        })
+
+        this.logger.verbose(`loading marks for language: ${language_code}`);
+        this.mark = getMark(language_code);
+    }
+
+    /**
+     * @description: add a listener to detected whether wechat is showing
+     */
+    add_wechat_detector() {
         let current_pkg = "";
         let last_pkg = "";
-        setInterval(function () {
+        setInterval(() => {
             current_pkg = selector().findOne().packageName();
-            if (current_pkg != last_pkg) {
-                if (current_pkg != "com.tencent.mm" && last_pkg == "com.tencent.mm") {
-                    this.wechat_events.emit("quit_wechat");
-                } else if (current_pkg == "com.tencent.mm") {
-                    this.wechat_events.emit("back_to_wechat");
-                }
+            if (current_pkg != "com.tencent.mm" && last_pkg == "com.tencent.mm") {
+                this.wechat_events.emit("quit_wechat");
+            } else if (current_pkg == "com.tencent.mm" && last_pkg != "com.tencent.mm") {
+                this.wechat_events.emit("back_to_wechat");
             }
             last_pkg = current_pkg;
-        }, EX_SHORT_WAIT_MS)
+        }, EX_SHORT_WAIT_MS);
+    }
 
-        this.wechat_events.on("quit_wechat", function () {
-            this.is_in_wechat = false;
-        })
+    /**
+     * @description: add a listener to detected whether wechat is in chat page
+     */
+    add_page_detector() {
+        let current_state = false;
+        this.page_detector = setInterval(() => {
+            current_state = className("ImageButton")
+                .desc(this.mark.desc_to_voice_button)
+                .exists();
+            if (current_state && !this.is_on_chat_page) {
+                this.wechat_events.emit("enter_chat_page");
+            } else if (!current_state && this.is_on_chat_page) {
+                this.wechat_events.emit("leave_chat_page");
+            }
+            this.is_on_chat_page = current_state;
+        }, EX_SHORT_WAIT_MS);
+    }
 
-        this.wechat_events.on("back_to_wechat", function () {
-            this.is_in_wechat = true;
-        })
-
-        this.getSelfUsername(false);
-
-        this.mark = getMark(language_code);
+    /**
+     * @param {*} event_name event name that you want to handle
+     * @param {*} handler function to handle the event
+     * @description: register event handler
+     */
+    register_listener(event_name, handler) {
+        this.wechat_events.on(event_name, handler);
     }
 
     /**
@@ -74,9 +121,7 @@ export class Wechat {
      * @description: Check whether wechat is displayed, if not, throw an exception
      */
     checkIsInWechat() {
-        if (!this.isInWechat()) {
-            throw new NotInWechatApp();
-        }
+        if (!this.isInWechat()) throw new NotInWechatApp();
     }
 
     /**
@@ -84,22 +129,14 @@ export class Wechat {
      * @description: check does wechat on chat page
      */
     isOnChatPage() {
-        if (this.isInWechat()) {
-            return className("ImageButton")
-                .desc(this.mark.desc_to_voice_button)
-                .exists();
-        } else {
-            return false;
-        }
+        return this.is_on_chat_page;
     }
 
     /**
      * @description: check does wechat is on chat page, if not, throw an exception
      */
     checkIsOnChatPage() {
-        if (!this.isOnChatPage()) {
-            throw new NotOnChatPage();
-        }
+        if (!this.isOnChatPage()) throw new NotOnChatPage();
     }
 
     /**
@@ -149,7 +186,7 @@ export class Wechat {
     openChatPageBySearch(username) {
         this.checkIsOnHomePage();
         let search_widget = desc(this.mark.desc_search_button)
-            .findOne(TIME_OUT_MS)
+            .findOne(TIMEOUT_MS)
         if (search_widget == null) {
             throw new WidgetNotFound("search button");
         }
@@ -159,7 +196,7 @@ export class Wechat {
         sleep(SHORT_WAIT_MS);
         this.logger.verbose(`open chat page with ${username}`);
         return className("ListView")
-            .findOne(TIME_OUT_MS)
+            .findOne(TIMEOUT_MS)
             .child(2)
             .click();
     }
@@ -179,7 +216,7 @@ export class Wechat {
             device.height)
             .className("RelativeLayout")
             .clickable()
-            .findOne(TIME_OUT_MS)
+            .findOne(TIMEOUT_MS)
             .click();
     }
 
@@ -230,7 +267,7 @@ export class Wechat {
             img = captureScreen();
         } catch (err) {
             this.logger.warn("no screenshot permission");
-            if (!(function () {
+            if (!(() => {
                 launch("com.hamibot.hamibot");
                 sleep(SHORT_WAIT_MS);
 
@@ -253,38 +290,15 @@ export class Wechat {
         this.logger.verbose("image captured successfully");
         img = images.clip(img, 0, 80, device.width, 200);
         let result = ocr.recognize(img).results[0].text;
-        this.logger.verbose(`OCR result: ${result}`);
         img.recycle();
 
-        match = /^(.+)[\(|（](\d*)[\)|）]$/.exec(result);
-
-        return {
+        let match = /^(.+)[\(|（](\d*)[\)|）]$/.exec(result);
+        result = {
             chat_name: match !== null ? match[1] : result,
             chat_user_number: match !== null ? Number(match[2]) : 1
         };
-    }
-
-    /**
-     * @return {string} other's username
-     * @description: get username of whom you are talking to
-     */
-    getChatUsernameByChatInfoPage() {
-        // TODO: Change this function to get a list of chat members instead
-        this.checkIsOnChatPage();
-        desc(this.mark.desc_chat_info_button)
-            .findOne(TIME_OUT_MS)
-            .click();
-        sleep(SHORT_WAIT_MS);
-        let username = className("TextView")
-            .textMatches(this.mark.reg_chat_info_page_title)
-            .findOne(TIME_OUT_MS)
-            .text();
-        this.verbose(`Get chat username: ${username}`);
-        sleep(SHORT_WAIT_MS);
-        className("Button")
-            .findOne(TIME_OUT_MS)
-            .click();
-        return username;
+        this.logger.verbose(`OCR result: ${JSON.stringify(result)}`);
+        return result;
     }
 
     /**
@@ -297,9 +311,7 @@ export class Wechat {
         this.openPersonalInformationPage();
         sleep(SHORT_WAIT_MS);
         let username = className("android.view.View")
-            .filter(function (i) {
-                return i.text() != "";
-            })
+            .filter(i => i.text() != "")
             .find()
             .slice(-1)[0]
             .text();
@@ -314,14 +326,18 @@ export class Wechat {
      * @return {string} self username
      * @description: get self username to attach when sending messages
      */
-    getSelfUsername(strict_mode = ture) {
+    getSelfUsername(strict_mode = true) {
         try {
             this.checkIsInWechat();
-            if (this.self_username == "") {
+            if (typeof this.self_username === "undefined") {
                 if (this.isOnChatPage()) {
                     let chat_name = this.getChatPageTitleByOCR().chat_name;
                     sleep(SHORT_WAIT_MS);
                     this.returnToHomePage();
+                    sleep(SHORT_WAIT_MS);
+                    if (text(this.mark.text_cancel_button).exists()) {
+                        text(this.mark.text_cancel_button).click();
+                    }
                     sleep(SHORT_WAIT_MS);
                     this.self_username = this.getSelfUsernameByhomePage();
                     sleep(SHORT_WAIT_MS);
@@ -342,35 +358,32 @@ export class Wechat {
     }
 
     /**
+     * @param {boolean} with_self_messages get message list including self messages. default is false
      * @return {UiCollection} collection of each message object
      * @description: get the list of currently visible chats
      */
-    getMessageList() {
+    getMessageList(with_self_messages = false) {
         this.checkIsOnChatPage();
+        if (!with_self_messages) {
+            this.getSelfUsername();
+        }
         this.logger.verbose("get message list");
-        return className("ListView")
-            .findOne(TIME_OUT_MS)
-            .children()
-    }
 
-    /**
-     * @return {UiCollection} collection of others messages object
-     * @description: get the list of currently visible chats with out self messages
-     */
-    getOtherMessageList() {
-        this.checkIsOnChatPage();
-        this.getSelfUsername();
-        this.logger.verbose("get other message list");
+        sleep(SHORT_WAIT_MS);
 
-        return className("RelativeLayout").filter(function (i) {
-            let result = i.findOne(
-                className("ImageView").filter(function (i) {
+        return className("RelativeLayout").filter(i => {
+            let selector = i.findOne(
+                className("ImageView").filter(i => {
                     let reg_pattern = new RegExp(`^(.+)${this.mark.desc_avatar_suffix}$`);
                     let result = reg_pattern.exec(i.contentDescription);
-                    return result != null && result[1] != this.self_username;
+                    if (with_self_messages) {
+                        return result !== null;
+                    } else {
+                        return result != null && result[1] != this.self_username;
+                    }
                 })
             );
-            return result != null && i.parent().className().includes("ListView");
+            return selector !== null && i.parent().className().includes("ListView");
         }).find();
     }
 
@@ -382,32 +395,34 @@ export class Wechat {
     getMessageInfoByUIObject(message_object) {
         let selector = message_object.children().slice(-1)[0];
 
+        if (selector.childCount() == 1) selector = selector.child(0);
+
         // get message sender
+        let avatar_selector = selector.findOne(className("RelativeLayout")).findOne(className("ImageView"));
         let reg_pattern = new RegExp(`^(.+)${this.mark.desc_avatar_suffix}$`);
-        let sender = reg_pattern.exec(
-            selector.findOne(className("ImageView")).contentDescription
-        );
+        let sender = reg_pattern.exec(avatar_selector.contentDescription)[1];
 
         // get message text
-        let text = selector.find(className("TextView"))
-            .slice(-1)[0]
-            .text;
+        let text_selectors = selector.find(className("TextView").filter(i => {
+            let o_bound = avatar_selector.bounds();
+            let i_bound = i.bounds();
+            return i_bound.bottom - i_bound.top > (o_bound.bottom - o_bound.top) / 2;
+        }));
+        text = text_selectors.nonEmpty() ? text_selectors[0].text() : "[other message type]";
 
-        let result = {
+        return {
             username: sender,
             message: text
         };
-        logger.verbose(`Message info: ${result}`);
-        return result;
     }
 
     /**
      * @return {Array} message information {username: string, message: string}
-     * @description: get latest raw message form other side of chat
+     * @description: get latest message information form other side of chat
      */
-    getRecentMessage() {
+    getRecentOtherMessageInfo() {
         let messages = this.getMessageList();
-        return this.getMessageInfoByUIObject(messages.slice(-1)[0])
+        return messages.nonEmpty() ? this.getMessageInfoByUIObject(messages.slice(-1)[0]) : "";
     }
 
     /**
@@ -418,7 +433,7 @@ export class Wechat {
         this.checkIsOnChatPage();
         return className("EditText")
             .editable()
-            .findOne(TIME_OUT_MS)
+            .findOne(TIMEOUT_MS)
             .text();
     }
 
@@ -453,7 +468,7 @@ export class Wechat {
         this.logger.verbose("send message");
         return className("Button")
             .text(this.mark.text_send_message_button)
-            .findOne(TIME_OUT_MS)
+            .findOne(TIMEOUT_MS)
             .click();
     }
 }

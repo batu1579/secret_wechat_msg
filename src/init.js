@@ -2,7 +2,7 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-04 20:58:39
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-08 06:19:13
+ * @LastTime: 2022-02-08 23:00:10
  * @FilePath: \\src\\init.js
  * @Description: 脚本初始化
  */
@@ -12,17 +12,21 @@ import { Logger } from "./modules/logger/logger";
 
 import { Wechat } from "./modules/wechat/wechat_operation";
 
+import { ChatManager } from "./modules/chat/chat";
+
 const { SHOW_CONSOLE } = hamibot.env;
 
 const { WECHAT_LANGUAGE } = hamibot.env;
 
 export const wechat = new Wechat(WECHAT_LANGUAGE != null ? WECHAT_LANGUAGE : "CN");
 
-export function init() {
-    logger = new Logger("init");
+export const chat_manager = new ChatManager();
 
-    console.info('Launching...');
-    events.on("exit", () => { console.info("Exit..."); });
+export function init() {
+    let logger = new Logger("init");
+
+    logger.info('Launching...');
+    events.on("exit", () => { console.info(logger.pattern("INFO", "Exit...")); });
 
     // check accessibility permission
     if (auto.service === null) {

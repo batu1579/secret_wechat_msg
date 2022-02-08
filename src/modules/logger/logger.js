@@ -2,7 +2,7 @@
  * @Author: BATU1579
  * @CreateDate: 2022-02-05 04:00:16
  * @LastEditor: BATU1579
- * @LastTime: 2022-02-06 02:02:58
+ * @LastTime: 2022-02-08 22:59:15
  * @FilePath: \\src\\modules\\logger\\logger.js
  * @Description: 简单包装一下 console
  */
@@ -12,6 +12,12 @@ export class Logger {
         this.modules_name = modules_name;
     }
 
+    /**
+     * @param {string} level log level
+     * @param {string} message log message
+     * @return {string} Generated log message
+     * @description: Generate logs in a unified format based on the template
+     */
     pattern(level, message) {
         return `[${level}] <${this.modules_name}> : ${message}`
     }
